@@ -5,7 +5,7 @@ garage_activity = {}
 
 app = Flask(__name__)
 
-@app.route('/openalert', methods=['GET'])
+@app.route('/openalert', methods=['POST'])
 def send_alert():
 	try:
 		minutes_opened = request.args.get('minutes')
@@ -22,7 +22,7 @@ def send_alert():
 	except Exception as e:
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
-@app.route('/sensorchange', methods=['GET'])
+@app.route('/sensorchange', methods=['POST'])
 def door_sensor_change():
 	door_status = request.args.get('door_status')
 	date = request.args.get('date')
