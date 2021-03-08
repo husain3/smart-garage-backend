@@ -1,4 +1,6 @@
 import RPi.GPIO as GPIO
+from datetime import datetime
+from time import sleep
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
@@ -8,16 +10,29 @@ GPIO.setup(16, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 #Do Anass style commenting
 def door_open():
 	print("Door is open")
+	time_opened = datetime.now()
+	#########################################################
+	#POST open status date/time to monitoring server
+	#########################################################
 	while(1):
-		#POST open status date/time to monitoring server
+		if((int((datetime.now()-time_opened).total_seconds()) % 60) == 0 and (int((datetime.now()-time_opened).total_seconds()) != 0)):
+			#########################################################
+			#Send POST to monitoring server /openalert endpoint if door is open for 10 minutes
+			#########################################################
+			print(f"WARNING: Garage has been open for {int((datetime.now()-time_opened).total_seconds() / 60)} minutes")
+			sleep(1)
 		if(GPIO.input(16) == GPIO.HIGH):
+			time_closed = datetime.now()
+			print(f"Door was opened for {(time_closed-time_opened).total_seconds()}")
 			return
 
 
 def door_closed():
 	print("Door is closed")
 	while(1):
-		#POST close status date/time to monitoring server
+		#########################################################
+		#POST close status date/time to monitoring server]
+		#########################################################
 		if(GPIO.input(16) == GPIO.LOW):
 			return
 
