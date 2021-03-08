@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, Response
-
+import requests
 
 garage_activity = {}
 
@@ -26,7 +26,7 @@ def send_alert():
 def door_sensor_change():
 	door_status = request.args.get('door_status')
 	date = request.args.get('date')
-	time = request.args.get('door_status')
+	time = request.args.get('time')
 
 	try:
 		if not door_status or not date or not time:
@@ -48,20 +48,21 @@ def door_sensor_change():
 		    'time': time
 		}
 
+		#POST sensor change status date/time to monitoring server
+		#TODO Wrap this in try catch?
+		sensorchange = requests.post('http://localhost:5002/garageactivity',
+									params={'door_status': door_status,
+											'date': date,
+											'time': time})
 
-		#########################################################
-		#Send POST in JSON form to the logging server, e.g.
-		#{
-		#	door_status: OPEN
-		#	date: 05/29/2021
-		#	time: 17:41:00
-		#}
-		#########################################################
+		print(sensorchange)
+
 		return Response('OK', status=200, mimetype='text/html')
 
 	except AssertionError as a:
 		return Response(f'Unable to process. Reason: {a}', status=400, mimetype='text/html')
 	except Exception as e:
+		print(e)
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
 if __name__ == "__main__":
