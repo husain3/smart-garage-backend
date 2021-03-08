@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 from datetime import datetime
 from time import sleep
+import requests
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
@@ -15,10 +16,17 @@ def door_open():
 	#POST open status date/time to monitoring server
 	#########################################################
 	while(1):
-		if((int((datetime.now()-time_opened).total_seconds()) % 60) == 0 and (int((datetime.now()-time_opened).total_seconds()) != 0)):
-			#########################################################
-			#Send POST to monitoring server /openalert endpoint if door is open for 10 minutes
-			#########################################################
+		if((int((datetime.now()-time_opened).total_seconds()) % 600) == 0 and (int((datetime.now()-time_opened).total_seconds()) != 0)):
+			try:
+				#########################################################
+				#Send POST to monitoring server /openalert endpoint if door is open for 10 minutes
+				r = requests.get('http://localhost:5001/openalert', params={'minutes': int((datetime.now()-time_opened).total_seconds() / 60)})
+				#########################################################
+			except Exception as e:
+				###########################################################
+				# TODO: LOG ERROR AND COME UP WITH WAY TO ALERT OF FAILURE
+				###########################################################
+				print(f"CANNOT SEND ALERT TO MONITORING SERVER. {e}")
 			print(f"WARNING: Garage has been open for {int((datetime.now()-time_opened).total_seconds() / 60)} minutes")
 			sleep(1)
 		if(GPIO.input(16) == GPIO.HIGH):
