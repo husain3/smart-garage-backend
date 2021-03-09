@@ -82,6 +82,19 @@ def stream():
     response.headers["Access-Control-Allow-Origin"] = "*"
     return response
 
+@app.route('/current_state', methods=['GET'])
+def door_current_state():
+	try:
+		return Response(json.dumps(garage_current_state), status=200, mimetype='application/json')
+	except Exception as e:
+		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
+
 if __name__ == "__main__":
+	#Make GET request to log server for last activity
+	response = requests.get('http://localhost:5002/lastactivity')
+	garage_current_state['door_status'] = response.json()['door_status']
+	garage_current_state['date'] = response.json()['date']
+	garage_current_state['time'] = response.json()['time']
+
 	app.run(debug=True, host='0.0.0.0', port=5001)
 	app.config["REDIS_URL"] = "redis://127.0.0.1:6379/0"

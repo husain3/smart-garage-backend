@@ -46,5 +46,17 @@ def log_garage_activity():
 	except Exception as e:
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
+@app.route('/lastactivity', methods=['GET'])
+def get_last_activity():
+	try:
+		with open('garage_logs.json') as json_file:
+			data = json.load(json_file)
+			log_entries = data["garagedoor_usage_log"]
+			print(type(log_entries[-1:][0]))
+			last_entry = log_entries[-1:][0]
+			return Response(response=json.dumps(last_entry), status=200, mimetype='application/json')
+	except Exception as e:
+		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
+
 if __name__ == "__main__":
 		app.run(debug=True, host='0.0.0.0', port=5002)
