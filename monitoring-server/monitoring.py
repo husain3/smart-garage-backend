@@ -1,9 +1,22 @@
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, json
+from flask_sse import sse
+from apscheduler.schedulers.background import BackgroundScheduler
 import requests
+import redis
 
-garage_activity = {}
+garage_current_state = {}
 
 app = Flask(__name__)
+red = redis.StrictRedis()
+red.from_url("redis://127.0.0.1:6379/0")
+
+def event_stream():
+	pubsub = red.pubsub()
+	pubsub.subscribe('door_activity')
+	# TODO: handle client disconnection.
+	for message in pubsub.listen():
+		if message['type']=='message':
+			yield('data: %s\n\n' % message['data'].decode('utf-8'))
 
 @app.route('/openalert', methods=['POST'])
 def send_alert():
@@ -41,12 +54,9 @@ def door_sensor_change():
 			#TODO: Return missing param arguments as json
 			raise AssertionError(f"The following params are missing: {params_missing}")
 
-
-		garage_activity = {
-		    'door_status': door_status,
-		    'date': date,
-		    'time': time
-		}
+		garage_current_state['door_status'] = door_status
+		garage_current_state['date'] = date
+		garage_current_state['time'] = time
 
 		#POST sensor change status date/time to monitoring server
 		#TODO Wrap this in try catch?
@@ -55,7 +65,7 @@ def door_sensor_change():
 											'date': date,
 											'time': time})
 
-		print(sensorchange)
+		red.publish('door_activity', u'[%s] %s: %s' % (door_status, date, time))
 
 		return Response('OK', status=200, mimetype='text/html')
 
@@ -65,5 +75,13 @@ def door_sensor_change():
 		print(e)
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
+@app.route('/stream')
+def stream():
+    response = Response(event_stream(),
+                          mimetype="text/event-stream")
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
+
 if __name__ == "__main__":
-		app.run(debug=True, host='0.0.0.0', port=5001)
+	app.run(debug=True, host='0.0.0.0', port=5001)
+	app.config["REDIS_URL"] = "redis://127.0.0.1:6379/0"
