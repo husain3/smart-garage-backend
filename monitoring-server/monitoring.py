@@ -3,6 +3,7 @@ from flask_sse import sse
 from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 import redis
+import json
 
 garage_current_state = {}
 
@@ -65,7 +66,7 @@ def door_sensor_change():
 											'date': date,
 											'time': time})
 
-		red.publish('door_activity', u'[%s] %s: %s' % (door_status, date, time))
+		red.publish('door_activity', json.dumps(garage_current_state))
 
 		return Response('OK', status=200, mimetype='text/html')
 
