@@ -21,3 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added CORS header: Access-Control-Allow-Origin to allow requests from originating
 from the [smart-garage frontend app](https://github.com/husain3/smart-garage)
+
+## [0.2.0] - 2021-03-11
+
+### Added
+
+- SG-13: Ignore json logging file and stop tracking
+- SG-14: Change redis message to json format
