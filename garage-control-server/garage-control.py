@@ -18,7 +18,11 @@ def Garage():
 		time.sleep(1)
 		GPIO.output(7, GPIO.HIGH)
 		time.sleep(2)
-		return Response('OK', status=200, mimetype='text/html')
+
+		response = Response('OK', status=200, mimetype='text/html')
+		response.headers["Access-Control-Allow-Origin"] = "*"
+
+		return response
 	except Exception as e:
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 

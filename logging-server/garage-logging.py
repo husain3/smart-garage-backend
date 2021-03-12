@@ -54,7 +54,9 @@ def get_last_activity():
 			log_entries = data["garagedoor_usage_log"]
 			print(type(log_entries[-1:][0]))
 			last_entry = log_entries[-1:][0]
-			return Response(response=json.dumps(last_entry), status=200, mimetype='application/json')
+			response = Response(response=json.dumps(last_entry), status=200, mimetype='application/json')
+			response.headers["Access-Control-Allow-Origin"] = "*"
+			return response
 	except Exception as e:
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
