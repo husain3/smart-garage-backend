@@ -28,3 +28,9 @@ from the [smart-garage frontend app](https://github.com/husain3/smart-garage)
 
 - SG-13: Ignore json logging file and stop tracking
 - SG-14: Change redis message to json format
+
+## [0.2.1] - 2021-03-11
+
+### Fixed
+
+- SG-22: Create json if it doesn't exist and add json placeholders to HTTP responses if no logs exist.
