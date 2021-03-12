@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, Response
 import json
+from os import path
 
 app = Flask(__name__)
 
@@ -13,6 +14,19 @@ def log_garage_activity():
 	date = request.args.get('date')
 	time = request.args.get('time')
 
+	if not path.exists("garage_logs.json"):
+		initLogJson = '''
+{
+	"garagedoor_usage_log": [
+
+	]
+}
+'''
+
+		f = open('garage_logs.json', 'w')
+		f.write(initLogJson)
+		f.close()
+
 	try:
 		if not door_status or not date or not time:
 			params_missing = "\n"
@@ -25,13 +39,14 @@ def log_garage_activity():
 
 			#TODO: Return missing param arguments as json
 			raise AssertionError(f"The following params are missing: {params_missing}")
+
 		with open('garage_logs.json') as json_file:
 			data = json.load(json_file)
 			log_entries = data["garagedoor_usage_log"]
 
 			# Garage usage log entry to be appended
-			log_entry = {"door_status": door_status, 
-						 "date": date, 
+			log_entry = {"door_status": door_status,
+						 "date": date,
 						 "time": time
 						}
 
@@ -42,22 +57,36 @@ def log_garage_activity():
 			write_json(data)
 		return Response('OK', status=200, mimetype='text/html')
 	except AssertionError as a:
+		print(f'/garageactivity. Unable to process. Reason: {e}')
 		return Response(f'Unable to process. Reason: {a}', status=400, mimetype='text/html')
 	except Exception as e:
+		print(f'/garageactivity. Unable to process. Reason: {e}')
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
 @app.route('/lastactivity', methods=['GET'])
 def get_last_activity():
 	try:
-		with open('garage_logs.json') as json_file:
-			data = json.load(json_file)
-			log_entries = data["garagedoor_usage_log"]
-			print(type(log_entries[-1:][0]))
-			last_entry = log_entries[-1:][0]
-			response = Response(response=json.dumps(last_entry), status=200, mimetype='application/json')
+		if path.exists("garage_logs.json"):
+			with open('garage_logs.json') as json_file:
+				data = json.load(json_file)
+				log_entries = data["garagedoor_usage_log"]
+				print(type(log_entries[-1:][0]))
+				last_entry = log_entries[-1:][0]
+				response = Response(response=json.dumps(last_entry), status=200, mimetype='application/json')
+				response.headers["Access-Control-Allow-Origin"] = "*"
+				return response
+		else:
+			empty_entry = {
+				"door_status": "N/A",
+				"date": "N/A",
+				"time": "N/A"
+			}
+			response = Response(response=json.dumps(empty_entry), status=200, mimetype='application/json')
 			response.headers["Access-Control-Allow-Origin"] = "*"
 			return response
+
 	except Exception as e:
+		print(f'/lastactivity. Unable to process. Reason: {e}')
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
 @app.route('/history', methods=['GET'])
