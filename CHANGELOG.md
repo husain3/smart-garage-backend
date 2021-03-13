@@ -34,3 +34,9 @@ from the [smart-garage frontend app](https://github.com/husain3/smart-garage)
 ### Fixed
 
 - SG-22: Create json if it doesn't exist and add json placeholders to HTTP responses if no logs exist.
+
+## [0.3.0] - 2021-03-12
+
+### Added
+
+- SG-14: Create autostart script using tmuxinator to allow all servers to be booting in a tmux pane on boot.
