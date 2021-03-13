@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify, Response
 import json
 import time
 import RPi.GPIO as GPIO
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
@@ -10,8 +12,21 @@ GPIO.setup(7, GPIO.OUT)
 GPIO.output(7, GPIO.HIGH)
 
 app = Flask(__name__)
+auth = HTTPBasicAuth()
+
+@auth.verify_password
+def verify_password(username, password):
+    f = open('config.json')
+    data = json.load(f)
+    users = data["users"]
+    f.close()
+
+    if username in users and \
+            check_password_hash(users.get(username), password):
+        return username
 
 @app.route('/openclose', methods=['POST'])
+@auth.login_required
 def Garage():
 	try:
 		GPIO.output(7, GPIO.LOW)
