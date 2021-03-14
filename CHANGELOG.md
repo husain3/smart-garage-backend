@@ -46,3 +46,9 @@ from the [smart-garage frontend app](https://github.com/husain3/smart-garage)
 ### Added
 
 - SG-32: Add authentication for garage door toggle
+
+## [0.5.0] - 2021-03-14
+
+### Added
+
+- SG-27: Add browser push notifications every 10 minutes if garage door remains open
