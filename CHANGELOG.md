@@ -40,3 +40,9 @@ from the [smart-garage frontend app](https://github.com/husain3/smart-garage)
 ### Added
 
 - SG-14: Create autostart script using tmuxinator to allow all servers to be booting in a tmux pane on boot.
+
+## [0.4.0] - 2021-03-14
+
+### Added
+
+- SG-32: Add authentication for garage door toggle
