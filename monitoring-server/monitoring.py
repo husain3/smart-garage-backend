@@ -26,6 +26,14 @@ def send_alert():
 		if not minutes_opened:
 			raise AssertionError("No 'minutes' param sent")
 		print(f"WARNING: Garage door has been opened for {minutes_opened} minutes")
+
+		garage_still_open = {}
+
+		garage_still_open['door_status'] = 'still_open'
+		garage_still_open['minutes_opened'] = minutes_opened
+
+		red.publish('door_activity', json.dumps(garage_still_open))
+
 		#########################################################
 		#Send Amazon SNS text message to phone for notifications
 		#########################################################
