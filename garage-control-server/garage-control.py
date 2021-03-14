@@ -2,6 +2,12 @@ from flask import Flask, render_template, request, jsonify, Response
 import json
 import time
 import RPi.GPIO as GPIO
+from flask_httpauth import HTTPBasicAuth
+from flask_cors import CORS, cross_origin
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from flask_basicauth import BasicAuth
+
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
@@ -10,8 +16,21 @@ GPIO.setup(7, GPIO.OUT)
 GPIO.output(7, GPIO.HIGH)
 
 app = Flask(__name__)
+cors = CORS(app)
+
+f = open('config.json')
+data = json.load(f)
+user = data["user"]
+f.close()
+
+app.config['BASIC_AUTH_USERNAME'] = user['username']
+app.config['BASIC_AUTH_PASSWORD'] = user['password']
+
+basic_auth = BasicAuth(app)
 
 @app.route('/openclose', methods=['POST'])
+@cross_origin()
+@basic_auth.required
 def Garage():
 	try:
 		GPIO.output(7, GPIO.LOW)
@@ -20,7 +39,7 @@ def Garage():
 		time.sleep(2)
 
 		response = Response('OK', status=200, mimetype='text/html')
-		response.headers["Access-Control-Allow-Origin"] = "*"
+		# response.headers["Access-Control-Allow-Origin"] = "*"
 
 		return response
 	except Exception as e:
