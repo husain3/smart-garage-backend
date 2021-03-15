@@ -70,7 +70,6 @@ def get_last_activity():
 			with open('garage_logs.json') as json_file:
 				data = json.load(json_file)
 				log_entries = data["garagedoor_usage_log"]
-				print(type(log_entries[-1:][0]))
 				last_entry = log_entries[-1:][0]
 				response = Response(response=json.dumps(last_entry), status=200, mimetype='application/json')
 				response.headers["Access-Control-Allow-Origin"] = "*"
