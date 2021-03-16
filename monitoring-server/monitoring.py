@@ -69,10 +69,10 @@ def door_sensor_change():
 
 		#POST sensor change status date/time to monitoring server
 		#TODO Wrap this in try catch?
-		sensorchange = requests.post('http://localhost:5002/garageactivity',
+		sensorchange = requests.post('https://localhost:5002/garageactivity',
 									params={'door_status': door_status,
 											'date': date,
-											'time': time})
+											'time': time}, verify='./cert.pem')
 
 		red.publish('door_activity', json.dumps(garage_current_state))
 
@@ -100,10 +100,10 @@ def door_current_state():
 
 if __name__ == "__main__":
 	#Make GET request to log server for last activity
-	response = requests.get('http://localhost:5002/lastactivity')
+	response = requests.get('https://localhost:5002/lastactivity', verify='./cert.pem')
 	garage_current_state['door_status'] = response.json()['door_status']
 	garage_current_state['date'] = response.json()['date']
 	garage_current_state['time'] = response.json()['time']
 
-	app.run(debug=True, host='0.0.0.0', port=5001)
+	app.run(debug=True, host='0.0.0.0', port=5001, ssl_context=('cert.pem', 'key.pem'))
 	app.config["REDIS_URL"] = "redis://127.0.0.1:6379/0"
