@@ -17,7 +17,7 @@ def door_open():
 		try:
 			##################################################################################################################
 			#POST open status date/time to monitoring server
-			sensorchange = requests.post('https://localhost:5001/sensorchange',
+			sensorchange = requests.post('https://192.168.1.104:5001/sensorchange',
 										params={'door_status': "opened",
 												'date': time_opened.strftime("%x"),
 												'time': time_opened.strftime("%X")}, verify='./cert.pem')
@@ -37,7 +37,7 @@ def door_open():
 			try:
 				##################################################################################################################
 				#Send GET to monitoring server /openalert endpoint if door is open for 10 minutes
-				openalert = requests.post('https://localhost:5001/openalert',
+				openalert = requests.post('https://192.168.1.104:5001/openalert',
 										 params={'minutes': int((time_now-time_opened).total_seconds() / 60)}, verify='./cert.pem')
 				##################################################################################################################
 			except Exception as e:
@@ -60,7 +60,7 @@ def door_closed():
 		try:
 			#########################################################
 			#POST close status date/time to monitoring server
-			sensorchange = requests.post('https://localhost:5001/sensorchange',
+			sensorchange = requests.post('https://192.168.1.104:5001/sensorchange',
 									params={'door_status': "closed",
 											'date': time_closed.strftime("%x"),
 											'time': time_closed.strftime("%X")}, verify='./cert.pem')

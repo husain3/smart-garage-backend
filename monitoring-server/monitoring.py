@@ -69,7 +69,7 @@ def door_sensor_change():
 
 		#POST sensor change status date/time to monitoring server
 		#TODO Wrap this in try catch?
-		sensorchange = requests.post('https://localhost:5002/garageactivity',
+		sensorchange = requests.post('https://192.168.1.104:5002/garageactivity',
 									params={'door_status': door_status,
 											'date': date,
 											'time': time}, verify='./cert.pem')
@@ -100,7 +100,7 @@ def door_current_state():
 
 if __name__ == "__main__":
 	#Make GET request to log server for last activity
-	response = requests.get('https://localhost:5002/lastactivity', verify='./cert.pem')
+	response = requests.get('https://192.168.1.104:5002/lastactivity', verify='./cert.pem')
 	garage_current_state['door_status'] = response.json()['door_status']
 	garage_current_state['date'] = response.json()['date']
 	garage_current_state['time'] = response.json()['time']
