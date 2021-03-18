@@ -86,7 +86,11 @@ def get_last_activity():
 
 	except Exception as e:
 		print(f'/lastactivity. Unable to process. Reason: {e}')
-		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
+
+		response = Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
+		response.headers["Access-Control-Allow-Origin"] = "*"
+
+		return response
 
 @app.route('/history', methods=['GET'])
 def get_log_history():
