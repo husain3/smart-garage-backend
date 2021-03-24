@@ -9,6 +9,11 @@ logging-server/garage_logs.json
 garage-control-server/config.json
 
 #   =============================================================================
+#   Ignore monitoring server api key json config file
+#   =============================================================================
+monitoring-server/api_key.json
+
+#   =============================================================================
 #   Ignore all SSL certificate files
 #   =============================================================================
 *.pem

@@ -67,9 +67,22 @@ def door_sensor_change():
 		garage_current_state['date'] = date
 		garage_current_state['time'] = time
 
+		#POST sensor change status date/time to AWS to send SMS notification
+		#TODO Wrap this in try catch?
+
+		with open("api_key.json") as json_file:
+			data = json.load(json_file)
+			url = data["smart-garage-notification-url"]
+			api_key = data["x-api-key"]
+			
+			aws_response = requests.post(url=url,
+                                		params={'door_status': door_status},
+										headers={'x-api-key': api_key}
+									)
+
 		#POST sensor change status date/time to monitoring server
 		#TODO Wrap this in try catch?
-		sensorchange = requests.post('https://192.168.1.104:5002/garageactivity',
+		loggingserver_response = requests.post('https://192.168.1.104:5002/garageactivity',
 									params={'door_status': door_status,
 											'date': date,
 											'time': time}, verify='./cert.pem')
