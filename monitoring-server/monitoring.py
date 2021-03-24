@@ -37,6 +37,15 @@ def send_alert():
 		#########################################################
 		#Send Amazon SNS text message to phone for notifications
 		#########################################################
+
+		aws_response = requests.post(url=url,
+									params={
+										'door_status': garage_still_open['door_status'],
+										'open_duration': garage_still_open['minutes_opened']
+										},
+									headers={'x-api-key': api_key}
+									)
+
 		return Response('OK', status=200, mimetype='text/html')
 
 	except AssertionError as a:
