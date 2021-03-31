@@ -55,9 +55,6 @@ windows:
         - sensor-server:
           - cd sensor-server
           - python3 sensor.py
-        - logging-server:
-          - cd logging-server
-          - python3 garage-logging.py
         - monitoring-server:
           - cd monitoring-server
           - python3 monitoring.py
