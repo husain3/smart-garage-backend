@@ -20,6 +20,11 @@ def door_open():
 									params={'door_status': "opened",
 											'date': time_opened.strftime("%x"),
 											'time': time_opened.strftime("%X")})
+
+		sensorchange = requests.post('http://localhost:3001/sensorchange',
+									params={'door_status': "opened",
+											'date': time_opened.strftime("%x"),
+											'time': time_opened.strftime("%X")})
 		##################################################################################################################
 	except Exception as e:
 		###########################################################
@@ -34,6 +39,9 @@ def door_open():
 				##################################################################################################################
 				#Send GET to monitoring server /openalert endpoint if door is open for 10 minutes
 				openalert = requests.post('http://localhost:5001/openalert',
+										 params={'minutes': int((time_now-time_opened).total_seconds() / 60)})
+
+				openalert = requests.post('http://localhost:3001/openalert',
 										 params={'minutes': int((time_now-time_opened).total_seconds() / 60)})
 				##################################################################################################################
 			except Exception as e:
@@ -56,6 +64,11 @@ def door_closed():
 		#########################################################
 		#POST close status date/time to monitoring server
 		sensorchange = requests.post('http://localhost:5001/sensorchange',
+								params={'door_status': "closed",
+										'date': time_closed.strftime("%x"),
+										'time': time_closed.strftime("%X")})
+
+		sensorchange = requests.post('http://localhost:3001/sensorchange',
 								params={'door_status': "closed",
 										'date': time_closed.strftime("%x"),
 										'time': time_closed.strftime("%X")})
