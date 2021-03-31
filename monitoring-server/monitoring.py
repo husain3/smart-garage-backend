@@ -4,12 +4,17 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 import redis
 import json
+import subprocess
 
 garage_current_state = {}
 
 app = Flask(__name__)
 red = redis.StrictRedis()
 red.from_url("redis://127.0.0.1:6379/0")
+
+def write_txt(data, filename='garage_logs.txt'):
+	with open(filename,'a') as f:
+		f.write(f"{data['door_status']}\t date:{data['date']}\t time:{data['time']}\n")
 
 def event_stream():
 	pubsub = red.pubsub()
@@ -18,6 +23,47 @@ def event_stream():
 	for message in pubsub.listen():
 		if message['type']=='message':
 			yield('data: %s\n\n' % message['data'].decode('utf-8'))
+
+#===========================================================================================
+#Analyze use cases to see if you need both endpoints or just one /history
+@app.route('/history', methods=['GET'])
+def get_log_history():
+	#Need to wrap in try/catch
+	try:
+		content = content.join(str(n) for n in reversed(open("garage_logs.txt").readlines()))
+		return render_template("garage_log.html", content=content)
+	except Exception as e:
+		response = Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
+		response.headers["Access-Control-Allow-Origin"] = "*"
+
+		return response
+
+
+@app.route('/lastactivity', methods=['GET'])
+def get_last_activity():
+	#Need to wrap this in try/catch
+
+	try:
+		line = subprocess.check_output(['tail', '-1', "garage_logs.txt"]).decode("utf-8")
+		line = line.split()
+
+		last_activity = {
+			"door_status": line[0],
+			"date": line[1],
+			"time": line[2]
+		}
+		response = Response(response=json.dumps(last_activity), status=200, mimetype='application/json')
+		response.headers["Access-Control-Allow-Origin"] = "*"
+
+		return response
+	except Exception as e:
+		print(f'/lastactivity. Unable to process. Reason: {e}')
+
+		response = Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
+		response.headers["Access-Control-Allow-Origin"] = "*"
+
+		return response
+#===========================================================================================
 
 @app.route('/openalert', methods=['POST'])
 def send_alert():
@@ -89,12 +135,16 @@ def door_sensor_change():
 										headers={'x-api-key': api_key}
 									)
 
-		#POST sensor change status date/time to monitoring server
-		#TODO Wrap this in try catch?
-		loggingserver_response = requests.post('https://192.168.1.104:5002/garageactivity',
-									params={'door_status': door_status,
-											'date': date,
-											'time': time}, verify='./cert.pem')
+		#====================================================================================
+		# Garage usage log entry to be appended
+		log_entry = {"door_status": request.args.get('door_status'),
+						"date": request.args.get('date'),
+						"time": request.args.get('time')
+					}
+
+		#Write logs into json file
+		write_txt(log_entry)
+		#====================================================================================
 
 		red.publish('door_activity', json.dumps(garage_current_state))
 
@@ -113,19 +163,5 @@ def stream():
     response.headers["Access-Control-Allow-Origin"] = "*"
     return response
 
-@app.route('/current_state', methods=['GET'])
-def door_current_state():
-	try:
-		return Response(json.dumps(garage_current_state), status=200, mimetype='application/json')
-	except Exception as e:
-		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
-
 if __name__ == "__main__":
-	#Make GET request to log server for last activity
-	response = requests.get('https://192.168.1.104:5002/lastactivity', verify='./cert.pem')
-	garage_current_state['door_status'] = response.json()['door_status']
-	garage_current_state['date'] = response.json()['date']
-	garage_current_state['time'] = response.json()['time']
-
 	app.run(debug=True, host='0.0.0.0', port=5001, ssl_context=('cert.pem', 'key.pem'))
-	app.config["REDIS_URL"] = "redis://127.0.0.1:6379/0"
