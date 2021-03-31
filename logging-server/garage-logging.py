@@ -70,20 +70,19 @@ def get_last_activity():
 			with open('garage_logs.json') as json_file:
 				data = json.load(json_file)
 				log_entries = data["garagedoor_usage_log"]
-				print(type(log_entries[-1:][0]))
-				last_entry = log_entries[-1:][0]
+
+				try:
+					last_entry = log_entries[-1:][0]
+				except IndexError as I:
+					last_entry = {
+						"door_status": "N/A",
+						"date": "N/A",
+						"time": "N/A"
+					}
+
 				response = Response(response=json.dumps(last_entry), status=200, mimetype='application/json')
 				response.headers["Access-Control-Allow-Origin"] = "*"
 				return response
-		else:
-			empty_entry = {
-				"door_status": "N/A",
-				"date": "N/A",
-				"time": "N/A"
-			}
-			response = Response(response=json.dumps(empty_entry), status=200, mimetype='application/json')
-			response.headers["Access-Control-Allow-Origin"] = "*"
-			return response
 
 	except Exception as e:
 		print(f'/lastactivity. Unable to process. Reason: {e}')
@@ -102,4 +101,17 @@ def get_log_history():
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
 if __name__ == "__main__":
-		app.run(debug=True, host='0.0.0.0', port=5002)
+
+	if not path.exists("garage_logs.json"):
+		initLogJson = '''
+{
+	"garagedoor_usage_log": [
+
+	]
+}
+'''
+		f = open('garage_logs.json', 'w')
+		f.write(initLogJson)
+		f.close()
+
+	app.run(debug=True, host='0.0.0.0', port=5002)

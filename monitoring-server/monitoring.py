@@ -100,10 +100,13 @@ def door_current_state():
 
 if __name__ == "__main__":
 	#Make GET request to log server for last activity
-	response = requests.get('http://localhost:5002/lastactivity')
-	garage_current_state['door_status'] = response.json()['door_status']
-	garage_current_state['date'] = response.json()['date']
-	garage_current_state['time'] = response.json()['time']
+	try:
+		response = requests.get('http://localhost:5002/lastactivity')
+		garage_current_state['door_status'] = response.json()['door_status']
+		garage_current_state['date'] = response.json()['date']
+		garage_current_state['time'] = response.json()['time']
+	except Exception as e:
+		print(f"Unable to get last activity {e}")
 
 	app.run(debug=True, host='0.0.0.0', port=5001)
 	app.config["REDIS_URL"] = "redis://127.0.0.1:6379/0"
