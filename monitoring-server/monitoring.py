@@ -5,12 +5,16 @@ import requests
 import redis
 import json
 import subprocess
+import Adafruit_DHT as dht
 
 garage_current_state = {}
 
 app = Flask(__name__)
 red = redis.StrictRedis()
 red.from_url("redis://127.0.0.1:6379/0")
+
+#Set thermometer data pin
+DHT = 17
 
 def write_txt(data, filename='garage_logs.txt'):
 	with open(filename,'a') as f:
@@ -42,6 +46,28 @@ def get_log_history():
 
 		return response
 
+
+@app.route('/climate', methods=['GET'])
+def climate():
+	try:
+		humidity, temperature = dht.read_retry(dht.DHT22, DHT)
+
+		current_climate = {
+			"temperature": temperature,
+			"humidity": humidity
+		}
+
+		response = Response(response=json.dumps(current_climate), status=200, mimetype='application/json')
+		response.headers["Access-Control-Allow-Origin"] = "*"
+
+		return response
+	except Exception as e:
+		print(f'/climate. Unable to process. Reason: {e}')
+
+		response = Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
+		response.headers["Access-Control-Allow-Origin"] = "*"
+
+		return response
 
 @app.route('/lastactivity', methods=['GET'])
 def get_last_activity():
