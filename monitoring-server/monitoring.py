@@ -20,9 +20,12 @@ def event_stream():
 	pubsub = red.pubsub()
 	pubsub.subscribe('door_activity')
 	# TODO: handle client disconnection.
-	for message in pubsub.listen():
-		if message['type']=='message':
-			yield('data: %s\n\n' % message['data'].decode('utf-8'))
+	try:
+		for message in pubsub.listen():
+			if message['type']=='message':
+				yield('data: %s\n\n' % message['data'].decode('utf-8'))
+	finally:
+		i = 0
 
 #===========================================================================================
 #Analyze use cases to see if you need both endpoints or just one /history
@@ -125,15 +128,15 @@ def door_sensor_change():
 		#POST sensor change status date/time to AWS to send SMS notification
 		#TODO Wrap this in try catch?
 
-		with open("api_key.json") as json_file:
-			data = json.load(json_file)
-			url = data["smart-garage-notification-url"]
-			api_key = data["x-api-key"]
+		# with open("/home/pi/auth/api_key.json") as json_file:
+		# 	data = json.load(json_file)
+		# 	url = data["smart-garage-notification-url"]
+		# 	api_key = data["x-api-key"]
 			
-			aws_response = requests.post(url=url,
-                                		params={'door_status': door_status},
-										headers={'x-api-key': api_key}
-									)
+		# 	aws_response = requests.post(url=url,
+        #                         		params={'door_status': door_status},
+		# 								headers={'x-api-key': api_key}
+		# 							)
 
 		#====================================================================================
 		# Garage usage log entry to be appended
@@ -164,4 +167,4 @@ def stream():
     return response
 
 if __name__ == "__main__":
-	app.run(debug=True, host='0.0.0.0', port=5001, ssl_context=('cert.pem', 'key.pem'))
+	app.run(debug=True, host='0.0.0.0', port=5001, ssl_context=('/home/pi/auth/cert.pem', '/home/pi/auth/key.pem'))
