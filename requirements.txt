@@ -1,0 +1,8 @@
+flask
+flask_sse
+flask_httpauth
+flask_cors
+flask_basicauth
+apscheduler
+requests
+RPi.GPIO
