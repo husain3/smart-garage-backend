@@ -33,6 +33,7 @@ def event_stream():
 def get_log_history():
 	#Need to wrap in try/catch
 	try:
+		content = ''
 		content = content.join(str(n) for n in reversed(open("garage_logs.txt").readlines()))
 		return render_template("garage_log.html", content=content)
 	except Exception as e:
