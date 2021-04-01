@@ -50,7 +50,12 @@ def get_log_history():
 @app.route('/climate', methods=['GET'])
 def climate():
 	try:
-		humidity, temperature = dht.read_retry(dht.DHT22, DHT)
+		humidity = 0.0
+		temperature = 0.0
+
+		for i in range(3):
+			humidity, temperature = dht.read_retry(dht.DHT22, DHT)
+			print(f"{humidity}  {temperature}")
 
 		current_climate = {
 			"temperature": temperature,
@@ -114,6 +119,11 @@ def send_alert():
 		#Send Amazon SNS text message to phone for notifications
 		#########################################################
 
+		with open("/home/pi/auth/api_key.json") as json_file:
+			data = json.load(json_file)
+			url = data["smart-garage-notification-url"]
+			api_key = data["x-api-key"]
+
 		aws_response = requests.post(url=url,
 									params={
 										'door_status': garage_still_open['door_status'],
@@ -154,16 +164,6 @@ def door_sensor_change():
 
 		#POST sensor change status date/time to AWS to send SMS notification
 		#TODO Wrap this in try catch?
-
-		# with open("/home/pi/auth/api_key.json") as json_file:
-		# 	data = json.load(json_file)
-		# 	url = data["smart-garage-notification-url"]
-		# 	api_key = data["x-api-key"]
-			
-		# 	aws_response = requests.post(url=url,
-        #                         		params={'door_status': door_status},
-		# 								headers={'x-api-key': api_key}
-		# 							)
 
 		#====================================================================================
 		# Garage usage log entry to be appended
