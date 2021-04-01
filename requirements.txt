@@ -6,3 +6,4 @@ flask_basicauth
 apscheduler
 requests
 RPi.GPIO
+Adafruit_DHT
