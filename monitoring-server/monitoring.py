@@ -81,7 +81,7 @@ def create_app():
 		# Do initialisation stuff here
 		global yourThread
 		# Create your thread
-		yourThread = threading.Timer(doStuff())
+		yourThread = threading.Timer(0, doStuff())
 		yourThread.start()
 
 	# Initiate
@@ -193,7 +193,7 @@ def send_alert():
 
 		garage_still_open = {}
 
-		garage_still_open['door_status'] = 'still_open'
+		garage_still_open['door_status'] = 'STILL_OPEN'
 		garage_still_open['minutes_opened'] = minutes_opened
 
 		# red.publish('door_activity', json.dumps(garage_still_open))
@@ -214,6 +214,9 @@ def send_alert():
 										},
 									headers={'x-api-key': api_key}
 									)
+
+		print(aws_response)
+
 
 		return Response('OK', status=200, mimetype='text/html')
 
@@ -247,7 +250,19 @@ def door_sensor_change():
 
 		#POST sensor change status date/time to AWS to send SMS notification
 		#TODO Wrap this in try catch?
+		with open("/home/pi/auth/api_key.json") as json_file:
+			data = json.load(json_file)
+			url = data["smart-garage-notification-url"]
+			api_key = data["x-api-key"]
 
+		aws_response = requests.post(url=url,
+									params={
+										'door_status': garage_current_state['door_status']
+										},
+									headers={'x-api-key': api_key}
+									)
+
+		print(aws_response)
 		#====================================================================================
 		# Garage usage log entry to be appended
 		log_entry = {"door_status": request.args.get('door_status'),
