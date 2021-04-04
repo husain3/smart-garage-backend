@@ -6,34 +6,114 @@ import redis
 import json
 import subprocess
 import Adafruit_DHT as dht
+import threading
+import atexit
+from flask_cors import CORS, cross_origin
 
 garage_current_state = {}
 
-app = Flask(__name__)
-red = redis.StrictRedis()
-red.from_url("redis://127.0.0.1:6379/0")
+POOL_TIME = 60  # Seconds
 
-#Set thermometer data pin
-DHT = 17
+# variables that are accessible from anywhere
+current_climate = {}
+
+# lock to control access to variable
+dataLock = threading.Lock()
+
+# thread handler
+yourThread = threading.Thread()
+
+def create_app():
+	app = Flask(__name__)
+	#Set thermometer data pin
+	DHT = 17
+
+	def interrupt():
+		global yourThread
+		yourThread.cancel()
+
+	def doStuff():
+		global commonDataStruct
+		global yourThread
+
+		print("ACTIVE THREADS")
+		print("ACTIVE THREADS")
+		for thread in threading.enumerate():
+			print(thread.name)
+		print("ACTIVE THREADS")
+		print("ACTIVE THREADS")
+
+		with dataLock:
+			# Do your stuff with commonDataStruct Here
+			print("==================")
+			print("==================")
+			print("GETTING CLIMATE")
+			print("==================")
+			print("==================")
+
+			try:
+				humidity = 0.0
+				temperature = 0.0
+
+				for i in range(3):
+					humidity, temperature = dht.read_retry(dht.DHT22, DHT)
+					print(f"{humidity}  {temperature}")
+
+				temperature = round(temperature, 1)
+				humidity = round(humidity, 1)
+
+				current_climate["temperature"] = temperature
+				current_climate["humidity"] = humidity
+
+				print("NEWNEWNEWNEW")
+				print("NEWNEWNEWNEW")
+				print(current_climate["temperature"])
+				print(current_climate["humidity"])
+				print("NEWNEWNEWNEW")
+				print("NEWNEWNEWNEW")
+			except Exception as e:
+				print(f"CANT GET CLIMATE: {e}")
+		# Set the next thread to happen
+		yourThread = threading.Timer(POOL_TIME, doStuff, ())
+		yourThread.start()
+
+	def doStuffStart():
+		# Do initialisation stuff here
+		global yourThread
+		# Create your thread
+		yourThread = threading.Timer(doStuff())
+		yourThread.start()
+
+	# Initiate
+	doStuffStart()
+	# When you kill Flask (SIGTERM), clear the trigger for the next thread
+	atexit.register(interrupt)
+	return app
+
+
+app = create_app()
+# red = redis.StrictRedis()
+# red.from_url("redis://127.0.0.1:6379/0")
 
 def write_txt(data, filename='garage_logs.txt'):
 	with open(filename,'a') as f:
-		f.write(f"{data['door_status']}\t date:{data['date']}\t time:{data['time']}\n")
+		f.write(f"{data['door_status'].upper()}\t{data['date']}\t{data['time']}\n")
 
-def event_stream():
-	pubsub = red.pubsub()
-	pubsub.subscribe('door_activity')
-	# TODO: handle client disconnection.
-	try:
-		for message in pubsub.listen():
-			if message['type']=='message':
-				yield('data: %s\n\n' % message['data'].decode('utf-8'))
-	finally:
-		i = 0
+# def event_stream():
+# 	pubsub = red.pubsub()
+# 	pubsub.subscribe('door_activity')
+# 	# TODO: handle client disconnection.
+# 	try:
+# 		for message in pubsub.listen():
+# 			if message['type']=='message':
+# 				yield('data: %s\n\n' % message['data'].decode('utf-8'))
+# 	finally:
+# 		i = 0
 
 #===========================================================================================
 #Analyze use cases to see if you need both endpoints or just one /history
 @app.route('/history', methods=['GET'])
+@cross_origin()
 def get_log_history():
 	#Need to wrap in try/catch
 	try:
@@ -50,17 +130,20 @@ def get_log_history():
 @app.route('/climate', methods=['GET'])
 def climate():
 	try:
-		humidity = 0.0
-		temperature = 0.0
+		# humidity = 0.0
+		# temperature = 0.0
 
-		for i in range(3):
-			humidity, temperature = dht.read_retry(dht.DHT22, DHT)
-			print(f"{humidity}  {temperature}")
+		# for i in range(3):
+		# 	humidity, temperature = dht.read_retry(dht.DHT22, DHT)
+		# 	print(f"{humidity}  {temperature}")
 
-		current_climate = {
-			"temperature": temperature,
-			"humidity": humidity
-		}
+		# temperature = round(temperature, 1)
+		# humidity = round(humidity, 1)
+
+		# current_climate = {
+		# 	"temperature": temperature,
+		# 	"humidity": humidity
+		# }
 
 		response = Response(response=json.dumps(current_climate), status=200, mimetype='application/json')
 		response.headers["Access-Control-Allow-Origin"] = "*"
@@ -113,7 +196,7 @@ def send_alert():
 		garage_still_open['door_status'] = 'still_open'
 		garage_still_open['minutes_opened'] = minutes_opened
 
-		red.publish('door_activity', json.dumps(garage_still_open))
+		# red.publish('door_activity', json.dumps(garage_still_open))
 
 		#########################################################
 		#Send Amazon SNS text message to phone for notifications
@@ -176,7 +259,7 @@ def door_sensor_change():
 		write_txt(log_entry)
 		#====================================================================================
 
-		red.publish('door_activity', json.dumps(garage_current_state))
+		# red.publish('door_activity', json.dumps(garage_current_state))
 
 		return Response('OK', status=200, mimetype='text/html')
 
@@ -186,12 +269,12 @@ def door_sensor_change():
 		print(e)
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
-@app.route('/stream')
-def stream():
-    response = Response(event_stream(),
-                          mimetype="text/event-stream")
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    return response
+# @app.route('/stream')
+# def stream():
+#     response = Response(event_stream(),
+#                           mimetype="text/event-stream")
+#     response.headers["Access-Control-Allow-Origin"] = "*"
+#     return response
 
 if __name__ == "__main__":
-	app.run(debug=True, host='0.0.0.0', port=5001, ssl_context=('/home/pi/auth/cert.pem', '/home/pi/auth/key.pem'))
+	app.run(debug=True, host='0.0.0.0', port=5001)
