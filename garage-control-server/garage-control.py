@@ -1,13 +1,17 @@
-from flask import Flask, render_template, request, jsonify, Response
+#	================================================================================================
+#	File	: garage-control.py
+#	Purpose	: Controls the opening and closing of the garage door
+#	================================================================================================
+
 import json
 import time
 import RPi.GPIO as GPIO
+from flask import Flask, render_template, request, jsonify, Response
 from flask_httpauth import HTTPBasicAuth
 from flask_cors import CORS, cross_origin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from flask_basicauth import BasicAuth
-
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
@@ -18,6 +22,7 @@ GPIO.output(7, GPIO.HIGH)
 app = Flask(__name__)
 cors = CORS(app)
 
+# Gets the username and password saved in a separate json file
 f = open('config.json')
 data = json.load(f)
 user = data["user"]
@@ -28,6 +33,9 @@ app.config['BASIC_AUTH_PASSWORD'] = user['password']
 
 basic_auth = BasicAuth(app)
 
+#	================================================================================================
+#	/openclose - Triggers the garage door the open/close
+#	================================================================================================
 @app.route('/openclose', methods=['POST'])
 @cross_origin()
 @basic_auth.required
@@ -39,7 +47,6 @@ def Garage():
 		time.sleep(2)
 
 		response = Response('OK', status=200, mimetype='text/html')
-		# response.headers["Access-Control-Allow-Origin"] = "*"
 
 		return response
 	except Exception as e:

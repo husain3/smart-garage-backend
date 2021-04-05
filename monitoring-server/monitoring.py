@@ -1,3 +1,8 @@
+#	================================================================================================
+#	File	: monitoring.py
+#	Purpose	: Monitors the garage door, logs usage, and measures indoor climate
+#	================================================================================================
+
 from flask import Flask, render_template, request, jsonify, Response, json
 from flask_sse import sse
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -14,43 +19,35 @@ garage_current_state = {}
 
 POOL_TIME = 60  # Seconds
 
-# variables that are accessible from anywhere
+# Climate dict to save temperature and humidity for fast access
 current_climate = {}
 
-# lock to control access to variable
+# Lock to control access to variable
 dataLock = threading.Lock()
 
-# thread handler
-yourThread = threading.Thread()
+# Thermometer thread handler
+tempThread = threading.Thread()
 
-def create_app():
+#	================================================================================================
+#	Function to initialize flask server and start climate thread routine
+#	================================================================================================
+def create_monitoring_server():
 	app = Flask(__name__)
+
 	#Set thermometer data pin
 	DHT = 17
 
+	#SIGTERM handler
 	def interrupt():
-		global yourThread
-		yourThread.cancel()
+		global tempThread
+		tempThread.cancel()
 
-	def doStuff():
-		global commonDataStruct
-		global yourThread
-
-		print("ACTIVE THREADS")
-		print("ACTIVE THREADS")
-		for thread in threading.enumerate():
-			print(thread.name)
-		print("ACTIVE THREADS")
-		print("ACTIVE THREADS")
+	#Read thermometer and humidity sensor
+	def getClimate():
+		global current_climate
+		global tempThread
 
 		with dataLock:
-			# Do your stuff with commonDataStruct Here
-			print("==================")
-			print("==================")
-			print("GETTING CLIMATE")
-			print("==================")
-			print("==================")
-
 			try:
 				humidity = 0.0
 				temperature = 0.0
@@ -65,53 +62,43 @@ def create_app():
 				current_climate["temperature"] = temperature
 				current_climate["humidity"] = humidity
 
-				print("NEWNEWNEWNEW")
-				print("NEWNEWNEWNEW")
-				print(current_climate["temperature"])
-				print(current_climate["humidity"])
-				print("NEWNEWNEWNEW")
-				print("NEWNEWNEWNEW")
 			except Exception as e:
 				print(f"CANT GET CLIMATE: {e}")
-		# Set the next thread to happen
-		yourThread = threading.Timer(POOL_TIME, doStuff, ())
-		yourThread.start()
 
-	def doStuffStart():
-		# Do initialisation stuff here
-		global yourThread
+		# Set the next thread to happen
+		tempThread = threading.Timer(POOL_TIME, getClimate, ())
+		tempThread.start()
+
+	# Initialize climate reading routine
+	def getClimateStart():
+		# Initialize temperature thread
+		global tempThread
+
 		# Create your thread
-		yourThread = threading.Timer(0, doStuff())
-		yourThread.start()
+		tempThread = threading.Timer(0, getClimate())
+		tempThread.start()
 
 	# Initiate
-	doStuffStart()
-	# When you kill Flask (SIGTERM), clear the trigger for the next thread
+	getClimateStart()
+	
+	# SIGTERM handler registering
 	atexit.register(interrupt)
 	return app
 
 
-app = create_app()
-# red = redis.StrictRedis()
-# red.from_url("redis://127.0.0.1:6379/0")
+app = create_monitoring_server()
 
+#	================================================================================================
+#	Writes the usage event to a plain text log file
+#	================================================================================================
 def write_txt(data, filename='garage_logs.txt'):
 	with open(filename,'a') as f:
 		f.write(f"{data['door_status'].upper()}\t{data['date']}\t{data['time']}\n")
 
-# def event_stream():
-# 	pubsub = red.pubsub()
-# 	pubsub.subscribe('door_activity')
-# 	# TODO: handle client disconnection.
-# 	try:
-# 		for message in pubsub.listen():
-# 			if message['type']=='message':
-# 				yield('data: %s\n\n' % message['data'].decode('utf-8'))
-# 	finally:
-# 		i = 0
 
-#===========================================================================================
-#Analyze use cases to see if you need both endpoints or just one /history
+#	================================================================================================
+#	/history - Gets full log history of garage door
+#	================================================================================================
 @app.route('/history', methods=['GET'])
 @cross_origin()
 def get_log_history():
@@ -127,23 +114,12 @@ def get_log_history():
 		return response
 
 
+#	================================================================================================
+#	/climate - Gets current temperature and humidity of the garage area
+#	================================================================================================
 @app.route('/climate', methods=['GET'])
 def climate():
 	try:
-		# humidity = 0.0
-		# temperature = 0.0
-
-		# for i in range(3):
-		# 	humidity, temperature = dht.read_retry(dht.DHT22, DHT)
-		# 	print(f"{humidity}  {temperature}")
-
-		# temperature = round(temperature, 1)
-		# humidity = round(humidity, 1)
-
-		# current_climate = {
-		# 	"temperature": temperature,
-		# 	"humidity": humidity
-		# }
 
 		response = Response(response=json.dumps(current_climate), status=200, mimetype='application/json')
 		response.headers["Access-Control-Allow-Origin"] = "*"
@@ -157,11 +133,13 @@ def climate():
 
 		return response
 
+#	================================================================================================
+#	/lastactivity - Gets the last activity of the garage door
+#	================================================================================================
 @app.route('/lastactivity', methods=['GET'])
 def get_last_activity():
-	#Need to wrap this in try/catch
-
 	try:
+		#Fastest way to read the last line of a plain text file (last garage usage)
 		line = subprocess.check_output(['tail', '-1', "garage_logs.txt"]).decode("utf-8")
 		line = line.split()
 
@@ -181,8 +159,10 @@ def get_last_activity():
 		response.headers["Access-Control-Allow-Origin"] = "*"
 
 		return response
-#===========================================================================================
 
+#	================================================================================================
+#	/openalert - Sends alert that the garage door as been open for a long period
+#	================================================================================================
 @app.route('/openalert', methods=['POST'])
 def send_alert():
 	try:
@@ -196,12 +176,7 @@ def send_alert():
 		garage_still_open['door_status'] = 'STILL_OPEN'
 		garage_still_open['minutes_opened'] = minutes_opened
 
-		# red.publish('door_activity', json.dumps(garage_still_open))
-
-		#########################################################
 		#Send Amazon SNS text message to phone for notifications
-		#########################################################
-
 		with open("/home/pi/auth/api_key.json") as json_file:
 			data = json.load(json_file)
 			url = data["smart-garage-notification-url"]
@@ -215,9 +190,6 @@ def send_alert():
 									headers={'x-api-key': api_key}
 									)
 
-		print(aws_response)
-
-
 		return Response('OK', status=200, mimetype='text/html')
 
 	except AssertionError as a:
@@ -225,6 +197,9 @@ def send_alert():
 	except Exception as e:
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
+#	================================================================================================
+#	/sensorchange - Changes the open/close status of the garage door
+#	================================================================================================
 @app.route('/sensorchange', methods=['POST'])
 def door_sensor_change():
 	door_status = request.args.get('door_status')
@@ -248,8 +223,7 @@ def door_sensor_change():
 		garage_current_state['date'] = date
 		garage_current_state['time'] = time
 
-		#POST sensor change status date/time to AWS to send SMS notification
-		#TODO Wrap this in try catch?
+		#POST sensor change status date/time to AWS to send SMS notification via SES
 		with open("/home/pi/auth/api_key.json") as json_file:
 			data = json.load(json_file)
 			url = data["smart-garage-notification-url"]
@@ -262,8 +236,6 @@ def door_sensor_change():
 									headers={'x-api-key': api_key}
 									)
 
-		print(aws_response)
-		#====================================================================================
 		# Garage usage log entry to be appended
 		log_entry = {"door_status": request.args.get('door_status'),
 						"date": request.args.get('date'),
@@ -272,24 +244,13 @@ def door_sensor_change():
 
 		#Write logs into json file
 		write_txt(log_entry)
-		#====================================================================================
-
-		# red.publish('door_activity', json.dumps(garage_current_state))
 
 		return Response('OK', status=200, mimetype='text/html')
 
 	except AssertionError as a:
 		return Response(f'Unable to process. Reason: {a}', status=400, mimetype='text/html')
 	except Exception as e:
-		print(e)
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
-
-# @app.route('/stream')
-# def stream():
-#     response = Response(event_stream(),
-#                           mimetype="text/event-stream")
-#     response.headers["Access-Control-Allow-Origin"] = "*"
-#     return response
 
 if __name__ == "__main__":
 	app.run(debug=True, host='0.0.0.0', port=5001)
