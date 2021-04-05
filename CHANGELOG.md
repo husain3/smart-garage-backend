@@ -52,3 +52,14 @@ from the [smart-garage frontend app](https://github.com/husain3/smart-garage)
 ### Added
 
 - SG-27: Add browser push notifications every 10 minutes if garage door remains open
+
+## [1.0.0] - 2021-04-05
+
+### Added
+
+- SG-33: Keep attempting to send sensor status on fail
+- SG-52: Move logging functionality to monitoring server
+- SG-31: Add call to AWS Lambda smart-garage-notifications
+- SG-52: Speed up overall performance by removing redis
+- SG-48: Add temperature and humidity sensor functionality
+- Remove logging-server codebase
