@@ -253,16 +253,4 @@ def door_sensor_change():
 		return Response(f'Unable to process. Reason: {e}', status=500, mimetype='text/html')
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-	#Make GET request to log server for last activity
-	try:
-		response = requests.get('http://localhost:5002/lastactivity')
-		garage_current_state['door_status'] = response.json()['door_status']
-		garage_current_state['date'] = response.json()['date']
-		garage_current_state['time'] = response.json()['time']
-	except Exception as e:
-		print(f"Unable to get last activity {e}")
-
-=======
->>>>>>> release/1.0.0
 	app.run(debug=True, host='0.0.0.0', port=5001)
