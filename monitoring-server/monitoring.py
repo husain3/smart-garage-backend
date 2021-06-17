@@ -95,6 +95,21 @@ def write_txt(data, filename='garage_logs.txt'):
 	with open(filename,'a') as f:
 		f.write(f"{data['door_status'].upper()}\t{data['date']}\t{data['time']}\n")
 
+#	================================================================================================
+#	Gets the last log entry
+#	================================================================================================
+def last_log_entry():
+	#Fastest way to read the last line of a plain text file (last garage usage)
+	line = subprocess.check_output(['tail', '-1', "garage_logs.txt"]).decode("utf-8")
+	line = line.split()
+
+	last_activity = {
+		"door_status": line[0],
+		"date": line[1],
+		"time": line[2]
+	}
+
+	return last_activity
 
 #	================================================================================================
 #	/history - Gets full log history of garage door
@@ -139,15 +154,18 @@ def climate():
 @app.route('/lastactivity', methods=['GET'])
 def get_last_activity():
 	try:
-		#Fastest way to read the last line of a plain text file (last garage usage)
-		line = subprocess.check_output(['tail', '-1', "garage_logs.txt"]).decode("utf-8")
-		line = line.split()
+		# #Fastest way to read the last line of a plain text file (last garage usage)
+		# line = subprocess.check_output(['tail', '-1', "garage_logs.txt"]).decode("utf-8")
+		# line = line.split()
 
-		last_activity = {
-			"door_status": line[0],
-			"date": line[1],
-			"time": line[2]
-		}
+		# last_activity = {
+		# 	"door_status": line[0],
+		# 	"date": line[1],
+		# 	"time": line[2]
+		# }
+
+		last_activity = last_log_entry()
+
 		response = Response(response=json.dumps(last_activity), status=200, mimetype='application/json')
 		response.headers["Access-Control-Allow-Origin"] = "*"
 
@@ -223,27 +241,30 @@ def door_sensor_change():
 		garage_current_state['date'] = date
 		garage_current_state['time'] = time
 
-		#POST sensor change status date/time to AWS to send SMS notification via SES
-		with open("/home/pi/auth/api_key.json") as json_file:
-			data = json.load(json_file)
-			url = data["smart-garage-notification-url"]
-			api_key = data["x-api-key"]
+		last_activity = last_log_entry()
 
-		aws_response = requests.post(url=url,
-									params={
-										'door_status': garage_current_state['door_status']
-										},
-									headers={'x-api-key': api_key}
-									)
+		if(garage_current_state['door_status'] != last_activity['door_status']):
+			#POST sensor change status date/time to AWS to send SMS notification via SES
+			with open("/home/pi/auth/api_key.json") as json_file:
+				data = json.load(json_file)
+				url = data["smart-garage-notification-url"]
+				api_key = data["x-api-key"]
 
-		# Garage usage log entry to be appended
-		log_entry = {"door_status": request.args.get('door_status'),
-						"date": request.args.get('date'),
-						"time": request.args.get('time')
-					}
+			aws_response = requests.post(url=url,
+										params={
+											'door_status': garage_current_state['door_status']
+											},
+										headers={'x-api-key': api_key}
+										)
 
-		#Write logs into json file
-		write_txt(log_entry)
+			# Garage usage log entry to be appended
+			log_entry = {"door_status": request.args.get('door_status'),
+							"date": request.args.get('date'),
+							"time": request.args.get('time')
+						}
+
+			#Write logs into json file
+			write_txt(log_entry)
 
 		return Response('OK', status=200, mimetype='text/html')
 
