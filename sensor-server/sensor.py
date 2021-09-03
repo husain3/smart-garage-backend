@@ -17,7 +17,7 @@ def door_open():
 			#POST open status date/time to monitoring server
 			sensorchange = requests.post('http://192.168.1.104:5001/sensorchange',
 										params={'door_status': "OPENED",
-												'date': time_opened.strftime("%B %d, %Y"),
+												'date': time_opened.strftime("%b %d, %Y"),
                                                 'time': time_opened.strftime("%I:%M:%S %p")})
 		except Exception as e:
 			print(f"CANNOT SEND DOOR OPENED STATUS TO MONITORING SERVER. {e}")
@@ -50,7 +50,7 @@ def door_closed():
 			#POST close status date/time to monitoring server
 			sensorchange = requests.post('http://192.168.1.104:5001/sensorchange',
 									params={'door_status': "CLOSED",
-                                            'date': time_closed.strftime("%B %d, %Y"),
+                                            'date': time_closed.strftime("%b %d, %Y"),
                                             'time': time_closed.strftime("%I:%M:%S %p")})
 		except Exception as e:
 			print(f"CANNOT SEND DOOR CLOSED STATUS TO MONITORING SERVER. {e}")
